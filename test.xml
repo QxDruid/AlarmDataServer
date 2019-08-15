@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<tt:Message UtcTime=" 2019-Jul-02T10-09-20"
+PropertyOperation="Initialized" xmlns:tt="http://www.onvif.org/ver10/schema">
+<tt:Source>
+<tt:SimpleItem Name="Id" Value="661" />
+</tt:Source>
+<tt:Key />
+<tt:Data>
+<tt:SimpleItem Name="Account" Value="Egorka" />
+<tt:SimpleItem Name="Picture" Value="2019-Jul-02T10-09-20.jpg" />
+<tt:SimpleItem Name="Result" Value="detected" />
+</tt:Data>
+</tt:Message>
