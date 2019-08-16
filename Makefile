@@ -6,7 +6,7 @@ OBJECTS += $(SOURCES:%.cpp=%.o)
 CXX ?= g++
 
 CXXFLAGS += -c -Wall -I/usr/local/include -I/usr/local/include/cppconn 
-LDFLAGS += -lmysqlcppconn
+LDFLAGS += -lmysqlcppconn -lpthread
 
 all: $(TARGET)
 
