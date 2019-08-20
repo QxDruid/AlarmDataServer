@@ -1,18 +1,26 @@
 #ifndef TCPSERVER_H
 #define TCPSERVER_H
 
-#include <string>
-#include <fstream>
-#include <cstdio>
+/* socket include*/
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
+#include <arpa/inet.h>
+#include <unistd.h>
 
+/*stl include*/
+#include <string>
+#include <fstream>
+#include <cstdio>
 #include <map>
 #include <iterator>
 #include <sstream>
+#include <vector>
+#include <fstream>
+#include <iostream>
+#include <thread>
 
-
+/*my libs include*/
 #include "XMLParser.h"
 #include "DataStruct.h"
 #include "mysql.h"

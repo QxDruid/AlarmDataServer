@@ -1,22 +1,5 @@
 #include "TcpServer.h"
 
-#include <fstream>
-#include <iostream>
-#include <string>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <unistd.h>
-#include <thread>
-#include <list>
-#include <iterator>
-#include <cstdio>
-
-#include <vector>
-//-----------------------
-#include <string.h>
-
 
 TcpServer::TcpServer() {
 
@@ -74,81 +57,6 @@ int TcpServer::start(void) // --------------work true--------------------
 }
 
 
-/* --------------------------------------------------------------------------------прошлая версия--------------------------------------------------------------------------------
-void TcpServer::OpiSocket(std::map <std::string, int> :: iterator it) // --------------work true--------------------
-{
-
-    char * recv_buffer;
-    char len_buffer[6];
-
-    int sock = it->second;
-    int len_recvd = 0;
-    int len_to_recv = 0;
-    int to_get = this->BUFFERSIZE;
-    int bytes_read = 0;
-
-    std::ostringstream ss;
-
-    std::cout << "thread for Id " << it->first << " started" << std::endl;
-
-    while(1)
-    {
-        ss.flush();
-        bytes_read = 0;
-        len_to_recv = 0;
-        len_recvd = 0;
-        char rdata[1024];
-
-        bytes_read = recv(sock, len_buffer, 6, 0);
-        if(bytes_read <= 0)
-        {
-            this->socket_map.erase(it);
-            break;
-        }
-        sscanf(len_buffer, "%d", &len_to_recv);
-        std::cout << "parsel size: " << len_to_recv << " bytes" << std::endl;
-
-        while(len_recvd < len_to_recv)
-        {
-            len_recvd += BUFFERSIZE;
-            if(len_recvd >= len_to_recv)
-            {
-                to_get = this->BUFFERSIZE - (len_recvd - len_to_recv);
-            }
-            else to_get = this->BUFFERSIZE;
-
-            recv_buffer = new char[to_get];
-
-            std::cout << "to get: " << to_get << " bytes" << std::endl;
-            
-            bytes_read = recv(sock, recv_buffer, to_get, 0);
-            if(bytes_read <= 0)
-            {
-                std::cout << "recv failed" << std::endl;
-                this->socket_map.erase(it);
-                break;
-            }
-
-            ss << recv_buffer;
-            delete recv_buffer;
-
-            if(ss.str() == "image")
-            {
-
-            }
-        }
-
-        std::cout << "recv: "<< ss.str().size() << " bytes: " << ss.str() << std::endl;
-    }
-
-    std::cout << "socket " << it->first << " closed" << std::endl;
-    close(it->second);
-    return;
-}
-*/
-
-
-
 void TcpServer::OpiSocket(std::map <std::string, int> :: iterator it) // --------------work true--------------------
 {
 
@@ -180,15 +88,37 @@ void TcpServer::OpiSocket(std::map <std::string, int> :: iterator it) // -------
                 break;
 
             std::ofstream xml_file(path + fname);
+            if (!xml_file.is_open()) // если файл небыл открыт
+            {
+                std::cout << "xml_file не может быть открыт или создан" << std::endl; // напечатать соответствующее сообщение
+                return; // выполнить выход из программы
+            }
             xml_file << data_str;
             xml_file.close();
 
-/*
-            XMLParser xml(fname.c_str());
+
+            XMLParser xml((path + fname).c_str());
             if(!xml.loadxml())
+            {
+                std::cout << "XML open fail" << std::endl;
                 break;
+            }
             parsed_data = xml.Parse_to_struct();
-            */
+            
+            /* SQL INSERT XML DATA */
+            mysql_insert(parsed_data);
+
+            /* SQL SELECT ALL */
+            std::vector<DataStruct> sql_request;
+            sql_request = mysql_select(); // Запрос
+    
+            std::cout << "MySQL info: " << std::endl;
+            for (int i = 0; i < static_cast<int>(sql_request.size()); ++i)
+            {
+                std::cout << sql_request[i].No << "\t|\t" << sql_request[i].Id << "\t|\t" << sql_request[i].Account 
+                    << "\t|\t" << sql_request[i].UtcTime << "\t|\t" << sql_request[i].Picture << std::endl;
+            }
+            std::cout << std::endl;
         }
 
         /* collect and save image */
@@ -198,7 +128,12 @@ void TcpServer::OpiSocket(std::map <std::string, int> :: iterator it) // -------
             if(str.empty())
                 break;
 
-            std::ofstream img_file(path + "pic.jpg");
+            std::ofstream img_file(path + parsed_data.Picture);
+            if (!img_file.is_open()) // если файл небыл открыт
+            {
+                std::cout << "img_file не может быть открыт или создан" << std::endl; // напечатать соответствующее сообщение
+                return; // выполнить выход из программы
+            }
             img_file << str;
             img_file.close();
         }
@@ -299,23 +234,6 @@ void TcpServer::socket_send(char * data, int len)
             std::cout << "send len error" << std::endl;
             return;
         }
-/*
-        int len_send = 0;
-        while(len_send < len)
-        {
-            len_send += 1024;
-            if(len_send > len)
-            {
-                len_send = 1024 - (len_send - len);
-            }
-            if(send(*it, data, len_send, 0) <= 0)
-            {
-                std::cout << "send data error" << std::endl;
-                return;
-            }
-            data += len_send;
-        }
-
 
         while (sended < len)
         {

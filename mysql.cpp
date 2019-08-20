@@ -76,5 +76,6 @@ int mysql_insert(DataStruct Data)
 
   delete prep_stmt;
   delete con;
-
+  
+  return 1;
 }
