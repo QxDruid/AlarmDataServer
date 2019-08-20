@@ -12,6 +12,11 @@
 #include <iterator>
 #include <sstream>
 
+
+#include "XMLParser.h"
+#include "DataStruct.h"
+#include "mysql.h"
+
 class TcpServer
 {
 public:
@@ -23,6 +28,7 @@ public:
 
     void socket_send(char * data, int len);
     void OpiSocket(std::map <std::string, int> :: iterator it);
+    std::string recv_data(int sock);
 private:
 
     int listener;

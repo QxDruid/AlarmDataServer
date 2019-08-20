@@ -13,8 +13,10 @@
 #include <iterator>
 #include <cstdio>
 
+#include <vector>
 //-----------------------
 #include <string.h>
+
 
 TcpServer::TcpServer() {
 
@@ -72,7 +74,7 @@ int TcpServer::start(void) // --------------work true--------------------
 }
 
 
-
+/* --------------------------------------------------------------------------------прошлая версия--------------------------------------------------------------------------------
 void TcpServer::OpiSocket(std::map <std::string, int> :: iterator it) // --------------work true--------------------
 {
 
@@ -103,7 +105,6 @@ void TcpServer::OpiSocket(std::map <std::string, int> :: iterator it) // -------
             this->socket_map.erase(it);
             break;
         }
-
         sscanf(len_buffer, "%d", &len_to_recv);
         std::cout << "parsel size: " << len_to_recv << " bytes" << std::endl;
 
@@ -130,20 +131,148 @@ void TcpServer::OpiSocket(std::map <std::string, int> :: iterator it) // -------
 
             ss << recv_buffer;
             delete recv_buffer;
+
+            if(ss.str() == "image")
+            {
+
+            }
         }
 
         std::cout << "recv: "<< ss.str().size() << " bytes: " << ss.str() << std::endl;
     }
 
-
-
-
-
     std::cout << "socket " << it->first << " closed" << std::endl;
     close(it->second);
     return;
 }
+*/
 
+
+
+void TcpServer::OpiSocket(std::map <std::string, int> :: iterator it) // --------------work true--------------------
+{
+
+    std::string data_str;
+    std::string fname;
+    std::string path = "data/";
+    std::cout << "thread for Id " << it->first << " started" << std::endl;
+    DataStruct parsed_data;
+    while(1)
+    {
+        /* recv name of data */
+       data_str = this->recv_data(it->second);
+       if(data_str.empty())
+            break;
+
+        /* if get xml recv file name and xml data
+            save file
+            parce file and save data to database
+        */
+        if(data_str == "xml")
+        {
+            data_str = this->recv_data(it->second);
+            if(data_str.empty())
+                break;
+            fname = data_str;
+
+            data_str = this->recv_data(it->second);
+            if(data_str.empty())
+                break;
+
+            std::ofstream xml_file(path + fname);
+            xml_file << data_str;
+            xml_file.close();
+
+/*
+            XMLParser xml(fname.c_str());
+            if(!xml.loadxml())
+                break;
+            parsed_data = xml.Parse_to_struct();
+            */
+        }
+
+        /* collect and save image */
+        else if(data_str == "image")
+        {
+            std::string str = this->recv_data(it->second);
+            if(str.empty())
+                break;
+
+            std::ofstream img_file(path + "pic.jpg");
+            img_file << str;
+            img_file.close();
+        }
+        else
+            std::cout << "recv: "<< data_str.size() << " bytes: " << data_str << std::endl;
+
+    }
+
+    /* if connection failed close socket and remove it from Map */
+    /* thread is detach -> after end of func its closed automaticaly */
+    close(it->second);
+    std::cout << "socket " << it->first << " closed" << std::endl;
+    
+    this->socket_map.erase(it);
+    std::cout << "socket " << it->first << " erised from map" << std::endl;
+    return;
+}
+
+
+std::string TcpServer::recv_data(int sock)
+{
+
+    std::vector<char> data; // char vector to collect data
+
+    char * recv_buffer; // dynamic buffer to socket func recv()
+    char len_buffer[6]; // buffer to collect data size
+
+    int len_recvd = 0; // length of recievd data
+    int len_to_recv = 0; // total length to reciev
+    int to_get = this->BUFFERSIZE; // data length to reciev for one iteration
+    int bytes_read = 0; // return of socket func recv() -> show length of recievd data (if 0 -> socket connection failed)
+
+        /* recv length of parcel. 
+            if 0 -> connection failed -> return zero string
+        */
+        bytes_read = recv(sock, len_buffer, 6, 0);
+        if(bytes_read <= 0)
+        {
+            std::cout << "recv failed 1" << std::endl;
+            return "";
+        }
+        sscanf(len_buffer, "%d", &len_to_recv); // translate char* to int
+
+        data.reserve(len_to_recv); // reserve vector size equal parcel size (to optimize memory operations)
+
+        /* recv parcel by parts of 1024 bytes
+            if size < 1024 reciev all parcel
+        */
+        while(len_recvd < len_to_recv)
+        {
+            len_recvd += BUFFERSIZE;
+            if(len_recvd >= len_to_recv)
+            {
+                to_get = this->BUFFERSIZE - (len_recvd - len_to_recv);
+            }
+            else to_get = this->BUFFERSIZE;
+
+            recv_buffer = new char[to_get];
+            
+            bytes_read = recv(sock, recv_buffer, to_get, 0);
+            if(bytes_read <= 0)
+            {
+                std::cout << "recv failed 2" << std::endl;
+                return "";
+            }
+            
+            data.insert(data.end(), recv_buffer, recv_buffer+to_get); // add recvd piece to data
+
+            delete[] recv_buffer;  // clear buffer
+        }
+
+        std::string str_data = std::string(data.begin(), data.end()); // converce std::vector to std::string
+        return str_data;    
+}
 
 TcpServer::~TcpServer() {
 
