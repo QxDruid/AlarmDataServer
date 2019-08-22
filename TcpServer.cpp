@@ -27,8 +27,10 @@ int TcpServer::start(void) // --------------work true--------------------
     listen(this->listener, 10);
     while(1)
     {
-        char id_buffer[3];
-        int bytes_read = 0;
+        //char id_buffer[3] = "";
+        //char len_buffer[6] = "";
+        //int bytes_read = 0;
+        std::string init_data = "";
 
         int sock = accept(this->listener, NULL, NULL);
         if(sock < 0)
@@ -37,20 +39,48 @@ int TcpServer::start(void) // --------------work true--------------------
             return 0;
         }
 
-        std::cout << "someone connected: "<< sock << std::endl;
-
-        bytes_read = recv(sock, id_buffer, 3, 0);
-
-        std::cout << "Id: " << id_buffer << std::endl;
+        init_data = recv_data(sock);
+        if(init_data.empty())
+                continue;
+        
+        //bytes_read = recv(sock, len_buffer, 6, 0);
+        //if(bytes_read <= 0)
+            //continue;
+        //bytes_read = recv(sock, id_buffer, 3, 0);
+        //if(bytes_read <= 0)
+            //continue;
+        if(init_data == "Opi")
+        {
+            std::cout << "Opi connected in socket: "<< sock << std::endl;
+            std::string id = recv_data(sock);
+            if(id.empty())
+                continue;
+            std::cout << "Id: " << id << std::endl;
+            this->socket_map.insert( std::pair<std::string,int>(id, sock) );
+            it = socket_map.find(id);
+            std::thread data_recv_thread(&TcpServer::OpiSocket, this, it);
+            data_recv_thread.detach();
+        }
+        else if(init_data == "Client")
+        {
+            /* делаем что то с клиентом но потом =) */
+        }
+        else
+        {
+            std::cout << "Someone connected in socket: "<< sock << std::endl;
+            std::cout << "False init packet" << std::endl;
+        }
+        
         /* Проверка налличия данных, если данных нет то поток не создаем и слушаем дальше */
-        if(bytes_read <= 0)
-            continue;
-
-        std::string id = id_buffer;
+        
+/*
+        std::string id = std::string(id_buffer,3);
+        std::cout << "Id: " << id << std::endl;
         this->socket_map.insert( std::pair<std::string,int>(id, sock) );
         it = socket_map.find(id);
         std::thread data_recv_thread(&TcpServer::OpiSocket, this, it);
         data_recv_thread.detach();
+        */
     }
 
     return 1;
@@ -109,6 +139,7 @@ void TcpServer::OpiSocket(std::map <std::string, int> :: iterator it) // -------
             mysql_insert(parsed_data);
 
             /* SQL SELECT ALL */
+            /*
             std::vector<DataStruct> sql_request;
             sql_request = mysql_select(); // Запрос
     
@@ -119,6 +150,7 @@ void TcpServer::OpiSocket(std::map <std::string, int> :: iterator it) // -------
                     << "\t|\t" << sql_request[i].UtcTime << "\t|\t" << sql_request[i].Picture << std::endl;
             }
             std::cout << std::endl;
+            */
         }
 
         /* collect and save image */
@@ -152,7 +184,7 @@ void TcpServer::OpiSocket(std::map <std::string, int> :: iterator it) // -------
     return;
 }
 
-
+/*
 std::string TcpServer::recv_data(int sock)
 {
 
@@ -168,7 +200,7 @@ std::string TcpServer::recv_data(int sock)
 
         /* recv length of parcel. 
             if 0 -> connection failed -> return zero string
-        */
+        
         bytes_read = recv(sock, len_buffer, 6, 0);
         if(bytes_read <= 0)
         {
@@ -181,7 +213,7 @@ std::string TcpServer::recv_data(int sock)
 
         /* recv parcel by parts of 1024 bytes
             if size < 1024 reciev all parcel
-        */
+        
         while(len_recvd < len_to_recv)
         {
             len_recvd += BUFFERSIZE;
@@ -208,6 +240,38 @@ std::string TcpServer::recv_data(int sock)
         std::string str_data = std::string(data.begin(), data.end()); // converce std::vector to std::string
         return str_data;    
 }
+
+*/
+
+std::string TcpServer::recv_data(int sock)
+{
+        char len_buffer[6]; // buffer to collect data size
+        char * recv_buffer;
+        int len_to_recv = 0;
+        int bytes_read = 0;
+
+        bytes_read = recv(sock, len_buffer, 6, MSG_WAITALL);
+        if(bytes_read <= 0)
+        {
+            std::cout << "recv failed 1" << std::endl;
+            return "";
+        }
+        sscanf(len_buffer, "%d", &len_to_recv); // translate char* to int
+
+
+        recv_buffer = new char[len_to_recv];
+            
+        bytes_read = recv(sock, recv_buffer, len_to_recv, MSG_WAITALL);
+        if(bytes_read <= 0)
+        {
+            std::cout << "recv failed 1" << std::endl;
+            return "";
+        }
+
+        std::string str_data = std::string(recv_buffer, len_to_recv);
+        return str_data;
+}
+
 
 TcpServer::~TcpServer() {
 

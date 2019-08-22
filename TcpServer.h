@@ -42,7 +42,7 @@ private:
     int listener;
     struct sockaddr_in addr;
 
-    static const int BUFFERSIZE = 1024;
+    static const int BUFFERSIZE = 256;
 
     std::map <std::string, int> socket_map;
     std::map <std::string, int> :: iterator it = socket_map.begin();
