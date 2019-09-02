@@ -63,7 +63,11 @@ int TcpServer::start(void) // --------------work true--------------------
         }
         else if(init_data == "Client")
         {
-            /* делаем что то с клиентом но потом =) */
+            std::cout << "Client connected: " << sock << std::endl;
+            this->client_list.push_back(sock);
+            std::thread data_recv_thread(&TcpServer::ClientSocket, this, --client_list.end());
+            std::cout << *(--this->client_list.end()) << std::endl;
+            data_recv_thread.detach();
         }
         else
         {
@@ -183,6 +187,36 @@ void TcpServer::OpiSocket(std::map <std::string, int> :: iterator it) // -------
     std::cout << "socket " << it->first << " erised from map" << std::endl;
     return;
 }
+
+void TcpServer::ClientSocket(std::list<int>::iterator it)
+{
+    std::string data_str;
+    std::cout << "thread started" << std::endl;
+    while(1)
+    {
+        data_str = this->recv_data(*it);
+        if(data_str.empty())
+            break;
+
+        std::cout << data_str << std::endl;
+
+        if(data_str == "update")
+        {
+            for( std::map <std::string, int> :: const_iterator itt = this->socket_map.begin(); itt != this->socket_map.end(); ++itt )
+            {
+                std::cout <<itt->first <<":"<< itt->second <<";"<< std::endl;
+            }
+        }
+
+    }
+
+    close(*it);
+    this->client_list.erase(it);
+    std::cout << "socket: " << *it << " closed" << std::endl;
+
+
+}
+
 
 /*
 std::string TcpServer::recv_data(int sock)
