@@ -4,8 +4,10 @@
 
 struct Opi_data
 {
-	std::string account;
+	Opi_data(int newsocket, std::string newaccount)
+         : socket(newsocket), account(newaccount) {}
 	int socket;
+	std::string account;
 };
 
 

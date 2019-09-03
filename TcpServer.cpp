@@ -56,7 +56,14 @@ int TcpServer::start(void) // --------------work true--------------------
             if(id.empty())
                 continue;
             std::cout << "Id: " << id << std::endl;
-            this->socket_map.insert( std::pair<std::string,int>(id, sock) );
+
+            std::string acc = recv_data(sock);
+            if(id.empty())
+                continue;
+            std::cout << "account: " << acc << std::endl;
+
+            this->socket_map.insert( std::pair<std::string,Opi_data>(id, Opi_data(sock,acc)) );
+
             it = socket_map.find(id);
             std::thread data_recv_thread(&TcpServer::OpiSocket, this, it);
             data_recv_thread.detach();
@@ -91,7 +98,7 @@ int TcpServer::start(void) // --------------work true--------------------
 }
 
 
-void TcpServer::OpiSocket(std::map <std::string, int> :: iterator it) // --------------work true--------------------
+void TcpServer::OpiSocket(std::map <std::string, Opi_data> :: iterator it) // --------------work true--------------------
 {
 
     std::string data_str;
@@ -99,10 +106,11 @@ void TcpServer::OpiSocket(std::map <std::string, int> :: iterator it) // -------
     std::string path = "data/";
     std::cout << "thread for Id " << it->first << " started" << std::endl;
     DataStruct parsed_data;
+
     while(1)
     {
         /* recv name of data */
-       data_str = this->recv_data(it->second);
+       data_str = this->recv_data(it->second.socket);
        if(data_str.empty())
             break;
 
@@ -112,12 +120,12 @@ void TcpServer::OpiSocket(std::map <std::string, int> :: iterator it) // -------
         */
         if(data_str == "xml")
         {
-            data_str = this->recv_data(it->second);
+            data_str = this->recv_data(it->second.socket);
             if(data_str.empty())
                 break;
             fname = data_str;
 
-            data_str = this->recv_data(it->second);
+            data_str = this->recv_data(it->second.socket);
             if(data_str.empty())
                 break;
 
@@ -160,7 +168,9 @@ void TcpServer::OpiSocket(std::map <std::string, int> :: iterator it) // -------
         /* collect and save image */
         else if(data_str == "image")
         {
-            std::string str = this->recv_data(it->second);
+            std::string send_str;
+            std::stringstream ss;
+            std::string str = this->recv_data(it->second.socket);
             if(str.empty())
                 break;
 
@@ -172,6 +182,18 @@ void TcpServer::OpiSocket(std::map <std::string, int> :: iterator it) // -------
             }
             img_file << str;
             img_file.close();
+
+
+            ss << "alarm" << ";" << "1" << ":" << parsed_data.Id << ":" <<  parsed_data.Account << ":" <<  parsed_data.UtcTime << ":" <<  parsed_data.Picture;
+            send_str = ss.str();
+            std::cout << "ALARM: " << send_str << std::endl;
+            ss.str("");
+            for( std::list <int> :: const_iterator it_ = this->client_list.begin(); it_ != this->client_list.end(); ++it_ )
+            {
+               this->send_data(*it_, send_str.c_str(), send_str.length());
+            }
+
+
         }
         else
             std::cout << "recv: "<< data_str.size() << " bytes: " << data_str << std::endl;
@@ -180,7 +202,7 @@ void TcpServer::OpiSocket(std::map <std::string, int> :: iterator it) // -------
 
     /* if connection failed close socket and remove it from Map */
     /* thread is detach -> after end of func its closed automaticaly */
-    close(it->second);
+    close(it->second.socket);
     std::cout << "socket " << it->first << " closed" << std::endl;
     
     this->socket_map.erase(it);
@@ -191,21 +213,31 @@ void TcpServer::OpiSocket(std::map <std::string, int> :: iterator it) // -------
 void TcpServer::ClientSocket(std::list<int>::iterator it)
 {
     std::string data_str;
+    std::string output_str;
+    std::stringstream output_ss;
     std::cout << "thread started" << std::endl;
+    char len_buffer[6];
     while(1)
     {
         data_str = this->recv_data(*it);
+        std::cout << data_str << std::endl;
+
         if(data_str.empty())
             break;
 
-        std::cout << data_str << std::endl;
-
         if(data_str == "update")
         {
-            for( std::map <std::string, int> :: const_iterator itt = this->socket_map.begin(); itt != this->socket_map.end(); ++itt )
+            output_ss << "update" << ";" << this->socket_map.size() << ";";
+            for( std::map <std::string, Opi_data>:: const_iterator itt = this->socket_map.begin(); itt != this->socket_map.end(); ++itt )
             {
-                std::cout <<itt->first <<":"<< itt->second <<";"<< std::endl;
+               output_ss << itt->first << ":" <<  itt->second.account << ":" <<  "Online" << ";";
             }
+
+            output_str = output_ss.str();
+
+            this->send_data(*it,output_str.c_str(),output_str.length());
+            std::cout << "UPDATE: " << output_str << std::endl;
+            output_ss.str("");
         }
 
     }
@@ -309,6 +341,26 @@ std::string TcpServer::recv_data(int sock)
 
 TcpServer::~TcpServer() {
 
+}
+
+
+
+void TcpServer::send_data(int sock, const char * data, int len)
+{
+    char buff[6];
+
+    sprintf(buff, "%06d", len);
+    if(send(sock, buff, 6, 0) <= 0)
+    {
+        std::cout << "send len error" << std::endl;
+        return;
+    }
+    if(send(sock, data, len, 0) <= 0)
+    {
+        std::cout << "send data error" << std::endl;
+        return;
+    }
+    return;
 }
 
 /*
