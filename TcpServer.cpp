@@ -1,4 +1,14 @@
 #include "TcpServer.h"
+#include <errno.h>
+#include <syslog.h>
+
+int log_(std::string data)
+{
+    std::ofstream log;
+    log.open("logServer.txt",std::ios_base::app);
+    log << data << std::endl;
+    log.close();
+}
 
 
 TcpServer::TcpServer() {
@@ -14,12 +24,17 @@ int TcpServer::start(void) // --------------work true--------------------
     this->listener = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
         if(this->listener < 0)
         {
+            log_("listen socket not created");
             std::cout << "listen socket not created" << std::endl;
             return 0;
         }
+        int opt = 1;
+        if (setsockopt (this->listener, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof (opt)) == -1) 
+            perror("setsockopt");
         if(bind(this->listener, (struct sockaddr *)&this->addr, sizeof(this->addr)) < 0)
         {
-            std::cout << "listener bind error" << std::endl;
+            log_("listener bind error");
+            std::cout << "listener bind error" << strerror(errno) << std::endl;
             return 0;
         }
 
@@ -35,6 +50,7 @@ int TcpServer::start(void) // --------------work true--------------------
         int sock = accept(this->listener, NULL, NULL);
         if(sock < 0)
         {
+            log_("connection accept error");
             std::cout << "connection accept error" << std::endl;
             return 0;
         }
@@ -51,6 +67,7 @@ int TcpServer::start(void) // --------------work true--------------------
             //continue;
         if(init_data == "Opi")
         {
+            log_("Opi connected in socket: ");
             std::cout << "Opi connected in socket: "<< sock << std::endl;
             std::string id = recv_data(sock);
             if(id.empty())
@@ -103,7 +120,7 @@ void TcpServer::OpiSocket(std::map <std::string, Opi_data> :: iterator it) // --
 
     std::string data_str;
     std::string fname;
-    std::string path = "data/";
+    std::string path = DATAPATH;
     std::cout << "thread for Id " << it->first << " started" << std::endl;
     DataStruct parsed_data;
 
@@ -205,8 +222,9 @@ void TcpServer::OpiSocket(std::map <std::string, Opi_data> :: iterator it) // --
     close(it->second.socket);
     std::cout << "socket " << it->first << " closed" << std::endl;
     
-    this->socket_map.erase(it);
+    
     std::cout << "socket " << it->first << " erised from map" << std::endl;
+    this->socket_map.erase(it);
     return;
 }
 
@@ -342,7 +360,6 @@ std::string TcpServer::recv_data(int sock)
 TcpServer::~TcpServer() {
 
 }
-
 
 
 void TcpServer::send_data(int sock, const char * data, int len)

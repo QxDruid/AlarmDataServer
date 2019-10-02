@@ -25,6 +25,9 @@
 #include "DataStruct.h"
 #include "mysql.h"
 #include "Opi_data.h"
+
+#define DATAPATH "/data/" // path to save collected data
+
 class TcpServer
 {
 public:
