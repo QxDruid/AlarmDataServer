@@ -167,19 +167,6 @@ void TcpServer::OpiSocket(std::map <std::string, Opi_data> :: iterator it) // --
             /* SQL INSERT XML DATA */
             mysql_insert(parsed_data);
 
-            /* SQL SELECT ALL */
-            /*
-            std::vector<DataStruct> sql_request;
-            sql_request = mysql_select(); // Запрос
-    
-            std::cout << "MySQL info: " << std::endl;
-            for (int i = 0; i < static_cast<int>(sql_request.size()); ++i)
-            {
-                std::cout << sql_request[i].No << "\t|\t" << sql_request[i].Id << "\t|\t" << sql_request[i].Account 
-                    << "\t|\t" << sql_request[i].UtcTime << "\t|\t" << sql_request[i].Picture << std::endl;
-            }
-            std::cout << std::endl;
-            */
         }
 
         /* collect and save image */
@@ -212,6 +199,13 @@ void TcpServer::OpiSocket(std::map <std::string, Opi_data> :: iterator it) // --
 
 
         }
+
+        /* Ping */
+        if(data_str == "ping")
+        {
+            /* send ping accept messege */
+        }
+
         else
             std::cout << "recv: "<< data_str.size() << " bytes: " << data_str << std::endl;
 
@@ -268,65 +262,6 @@ void TcpServer::ClientSocket(std::list<int>::iterator it)
 }
 
 
-/*
-std::string TcpServer::recv_data(int sock)
-{
-
-    std::vector<char> data; // char vector to collect data
-
-    char * recv_buffer; // dynamic buffer to socket func recv()
-    char len_buffer[6]; // buffer to collect data size
-
-    int len_recvd = 0; // length of recievd data
-    int len_to_recv = 0; // total length to reciev
-    int to_get = this->BUFFERSIZE; // data length to reciev for one iteration
-    int bytes_read = 0; // return of socket func recv() -> show length of recievd data (if 0 -> socket connection failed)
-
-        /* recv length of parcel. 
-            if 0 -> connection failed -> return zero string
-        
-        bytes_read = recv(sock, len_buffer, 6, 0);
-        if(bytes_read <= 0)
-        {
-            std::cout << "recv failed 1" << std::endl;
-            return "";
-        }
-        sscanf(len_buffer, "%d", &len_to_recv); // translate char* to int
-
-        data.reserve(len_to_recv); // reserve vector size equal parcel size (to optimize memory operations)
-
-        /* recv parcel by parts of 1024 bytes
-            if size < 1024 reciev all parcel
-        
-        while(len_recvd < len_to_recv)
-        {
-            len_recvd += BUFFERSIZE;
-            if(len_recvd >= len_to_recv)
-            {
-                to_get = this->BUFFERSIZE - (len_recvd - len_to_recv);
-            }
-            else to_get = this->BUFFERSIZE;
-
-            recv_buffer = new char[to_get];
-            
-            bytes_read = recv(sock, recv_buffer, to_get, 0);
-            if(bytes_read <= 0)
-            {
-                std::cout << "recv failed 2" << std::endl;
-                return "";
-            }
-            
-            data.insert(data.end(), recv_buffer, recv_buffer+to_get); // add recvd piece to data
-
-            delete[] recv_buffer;  // clear buffer
-        }
-
-        std::string str_data = std::string(data.begin(), data.end()); // converce std::vector to std::string
-        return str_data;    
-}
-
-*/
-
 std::string TcpServer::recv_data(int sock)
 {
         char len_buffer[6]; // buffer to collect data size
@@ -337,22 +272,23 @@ std::string TcpServer::recv_data(int sock)
         bytes_read = recv(sock, len_buffer, 6, MSG_WAITALL);
         if(bytes_read <= 0)
         {
-            std::cout << "recv failed 1" << std::endl;
+            std::cout << "data size recv failed" << std::endl;
             return "";
         }
         sscanf(len_buffer, "%d", &len_to_recv); // translate char* to int
-
 
         recv_buffer = new char[len_to_recv];
             
         bytes_read = recv(sock, recv_buffer, len_to_recv, MSG_WAITALL);
         if(bytes_read <= 0)
         {
-            std::cout << "recv failed 1" << std::endl;
+            std::cout << "data recv failed" << std::endl;
             return "";
         }
 
         std::string str_data = std::string(recv_buffer, len_to_recv);
+
+        this->send_data(sock, "Ok", 2);
         return str_data;
 }
 
@@ -379,49 +315,3 @@ void TcpServer::send_data(int sock, const char * data, int len)
     }
     return;
 }
-
-/*
-void TcpServer::socket_send(char * data, int len)
-{
-    char buff[6];
-
-    sprintf(buff, "%06d", len);
-    std::cout << "len to send: " << buff << std::endl;
-
-    this->it = this->socket_list.begin();
-    while(this->it != this->socket_list.end())
-    {
-        int transfer_len = 0;
-        int sended = 0;
-
-        std::cout << "send to: " << *it << std::endl;
-
-        if(send(*it, buff, 6, 0) <= 0)
-        {
-            std::cout << "send len error" << std::endl;
-            return;
-        }
-
-        while (sended < len)
-        {
-            if(len >= this->BUFFERSIZE)
-                transfer_len = len;
-
-            else
-                transfer_len = len - sended;
-
-            if(send(*it, data, transfer_len, 0) <= 0)
-            {
-                std::cout << "send data error" << std::endl;
-                return;
-            }
-            sended += transfer_len;
-            data += transfer_len;
-        }
-
-
-        std::cout << len << " bytes sended successfully" << std::endl;
-        this->it++;
-    }
-}
-*/
