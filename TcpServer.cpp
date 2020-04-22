@@ -166,6 +166,13 @@ void TcpServer::OpiSocket(std::map <std::string, Opi_data> :: iterator it) // --
             
             /* SQL INSERT XML DATA */
             mysql_insert(parsed_data);
+            std::cout << "Opi signal: " << parsed_data.Result  << std::endl;
+            /* if Opi is off. then close connection; */
+            if (parsed_data.Result == "Power Off")
+            {
+                std::cout << "Opi Power off signal" << std::endl;
+            	break;
+            }
 
         }
 

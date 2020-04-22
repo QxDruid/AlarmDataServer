@@ -22,10 +22,13 @@ install: ;
 	cp $(TARGET) $(DIR)
 	cp initd_script /etc/init.d/$(TARGET)
 	chmod +x /etc/init.d/$(TARGET)
+	systemctl daemon-reload
+	update-rc.d $(TARGET) defaults
 
 remove: ;
 	rm -rf $(DIR)$(TARGET)
 	rm -rf /data
 	rm -rf /etc/init.d/$(TARGET)
+	update-rc.d $(TARGET) remove
 
 .PHONY: clean install remove all

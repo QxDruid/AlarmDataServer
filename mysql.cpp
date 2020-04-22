@@ -16,7 +16,7 @@ try {
 
   /* Create a connection */
   driver = get_driver_instance();
-  con = driver->connect("tcp://127.0.0.1:3306", "user", "userpass");
+  con = driver->connect("tcp://127.0.0.1:3306", "alarmdaemon", "66062pass");
   /* Connect to the MySQL test database */
   con->setSchema("alarm_base");
 
@@ -61,7 +61,7 @@ int mysql_insert(DataStruct Data)
 
   /* Create a connection */
   driver = get_driver_instance();
-  con = driver->connect("tcp://127.0.0.1:3306", "user", "userpass");
+  con = driver->connect("tcp://127.0.0.1:3306", "alarmdaemon", "66062pass");
   /* Connect to the MySQL test database */
   con->setSchema("alarm_base");
 
