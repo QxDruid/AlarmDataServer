@@ -173,15 +173,16 @@ void TcpServer::OpiSocket(std::map <std::string, Opi_data> :: iterator it) // --
             
             /* redirect data to all client apps */ 
             output_ss << parsed_data.Id << ":" << parsed_data.Account << ":" << parsed_data.UtcTime << ":" << parsed_data.Result << ":" << parsed_data.Picture;
-            output_str = output_ss.c_str();
+            output_str = output_ss.str();
             output_ss.str("");
-            for( std::list <int> :: const_iterator it_ = this->client_list.begin(); it_ != this->client_list.end(); ++it_ )
+
+            for( std::list <int> :: iterator it_ = this->client_list.begin(); it_ != this->client_list.end(); ++it_ )
             {
-               if( !this->send_data(*it_, output_str, output_str.length()) )
+               if( !this->send_data(*it_, output_str.c_str(), output_str.length()) )
                {
-                    close(it_->second.socket);
+                    close(*it_);
                     this->client_list.erase(it_);
-                    std::cout << "Client socket closed with <<send data error>>"
+                    std::cout << "Client socket closed with <<send data error>>" << std::endl;
                }
             }
 
