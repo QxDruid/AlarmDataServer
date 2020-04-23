@@ -43,7 +43,7 @@ public:
     void ClientSocket(std::list<int>::iterator it);
 
     std::string recv_data(int sock);
-    void send_data(int sock, const char * data, int len);
+    int send_data(int sock, const char * data, int len);
 private:
 
     int listener;
